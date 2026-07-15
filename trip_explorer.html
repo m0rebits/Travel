@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Summer 2027 — Family Trip Explorer</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --surface:#ffffff; --ink:#20262e; --ink-2:#59636e; --ink-3:#8a96a1;
+    --line:#e7e2d9; --brand:#1f7a6d; --brand-d:#155c52; --accent:#e8763a; --gold:#f2b23e;
+    --rose:#d1495b; --chip:#f0ede6; --shadow:0 10px 30px -12px rgba(30,40,50,.28); --radius:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;
+    padding-bottom:calc(74px + env(safe-area-inset-bottom));line-height:1.45;
+  }
+  img{display:block;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  .wrap{max-width:640px;margin:0 auto;padding:0 14px;}
+
+  .appbar{position:sticky;top:0;z-index:40;background:rgba(246,244,239,.94);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+  .appbar .wrap{display:flex;align-items:center;gap:10px;padding-top:12px;padding-bottom:12px;}
+  .appbar h1{font-size:1.02rem;margin:0;font-weight:800;letter-spacing:-.01em;}
+  .appbar .sub{font-size:.72rem;color:var(--ink-3);margin:0;}
+  .globe{font-size:1.5rem;}
+
+  .view{display:none;animation:fade .3s ease both;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .pad{padding-top:16px;}
+
+  .intro{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 16px 14px;box-shadow:var(--shadow);margin-bottom:18px;}
+  .intro h2{margin:0 0 6px;font-size:1.12rem;}
+  .intro p{margin:0 0 4px;font-size:.9rem;color:var(--ink-2);}
+  .intro .tiny{font-size:.76rem;color:var(--ink-3);margin-top:8px;}
+
+  .section-label{font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-3);margin:20px 4px 10px;}
+
+  /* ----- shared "full photo, no crop" media (blurred backdrop) ----- */
+  .media{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--fa,#3a5a6a),var(--fb,#25384a));}
+  .media .mbg{position:absolute;inset:-8%;background-size:cover;background-position:center;
+    filter:blur(26px) brightness(.5);transform:scale(1.12);}
+  .media > img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;}
+
+  /* ----- destination cards ----- */
+  .dcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px;}
+  .dcard .cover{height:210px;}
+  .dcard .cover .scrim{position:absolute;inset:0;z-index:2;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.6));}
+  .dcard .cover .cap{position:absolute;left:14px;right:14px;bottom:12px;z-index:3;color:#fff;display:flex;justify-content:space-between;align-items:flex-end;gap:8px;}
+  .dcard .cover .cap h3{margin:0;font-size:1.28rem;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.6);}
+  .dcard .cover .cap .flag{font-size:1.7rem;}
+  .dcard .cover .badge{position:absolute;top:12px;left:12px;z-index:3;background:rgba(255,255,255,.94);color:var(--ink);font-size:.68rem;font-weight:700;padding:5px 9px;border-radius:999px;}
+  .dcard .body{padding:13px 15px 15px;}
+  .dcard .tagline{color:var(--brand-d);font-weight:700;font-size:.86rem;margin:0 0 8px;}
+  .dcard .facts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .fact{background:var(--chip);border-radius:9px;padding:5px 9px;font-size:.72rem;color:var(--ink-2);}
+  .fact b{color:var(--ink);font-weight:700;}
+  .dcard .row{display:flex;align-items:center;gap:10px;}
+  .rate-inline{display:flex;gap:3px;flex:1;}
+  .rate-inline .s{font-size:1.7rem;line-height:1;color:#dcd6ca;transition:color .12s,transform .12s;}
+  .rate-inline .s.on{color:var(--gold);}
+  .rate-inline .s:active{transform:scale(1.2);}
+  .btn-detail{background:var(--brand);color:#fff;font-weight:700;font-size:.82rem;padding:10px 14px;border-radius:12px;white-space:nowrap;}
+  .rated-tag{font-size:.68rem;color:var(--brand);font-weight:700;margin-top:7px;height:.9rem;}
+
+  /* ----- detail overlay ----- */
+  .detail{position:fixed;inset:0;z-index:60;background:var(--bg);overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
+  .detail.active{display:block;animation:slideup .3s cubic-bezier(.22,.61,.36,1) both;}
+  @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .detail-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 14px;
+    background:rgba(246,244,239,.96);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+  .back{font-size:1rem;font-weight:700;color:var(--brand-d);padding:6px 4px;}
+  .detail-top .dt-name{font-weight:800;font-size:.98rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  .gallery{position:relative;background:#111;}
+  .scroller{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .scroller::-webkit-scrollbar{display:none;}
+  .slide{position:relative;flex:0 0 100%;scroll-snap-align:center;height:min(56vh,400px);}
+  .slide .cap{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:30px 16px 12px;
+    background:linear-gradient(180deg,transparent,rgba(0,0,0,.72));color:#fff;font-size:.82rem;font-weight:600;}
+  .gnav{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:40px;height:40px;border-radius:50%;
+    background:rgba(255,255,255,.9);color:#20262e;font-size:1.5rem;font-weight:700;line-height:1;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.3);}
+  .gnav.prev{left:10px;} .gnav.next{right:10px;}
+  .gnav:active{transform:translateY(-50%) scale(.9);}
+  .dots{display:flex;gap:6px;justify-content:center;padding:10px 0 2px;background:var(--bg);}
+  .dots .d{width:8px;height:8px;border-radius:50%;background:#d3ccbf;transition:.2s;cursor:pointer;}
+  .dots .d.on{background:var(--brand);width:22px;border-radius:99px;}
+  .swipe-hint{text-align:center;font-size:.68rem;color:var(--ink-3);margin:2px 0 0;background:var(--bg);padding-bottom:4px;}
+
+  .detail .wrap{padding-bottom:34px;}
+  .d-head{padding:14px 4px 4px;}
+  .d-head h2{margin:0;font-size:1.5rem;letter-spacing:-.01em;}
+  .d-head .country{color:var(--ink-3);font-size:.85rem;font-weight:600;margin-top:2px;}
+  .d-head .tag{color:var(--brand-d);font-weight:700;font-size:.92rem;margin-top:8px;}
+
+  .qfacts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 4px;}
+  .qfact{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 11px;}
+  .qfact .k{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:700;}
+  .qfact .v{font-size:.84rem;font-weight:600;margin-top:2px;}
+
+  .block{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px;margin-top:16px;box-shadow:var(--shadow);}
+  .block h3{margin:0 0 4px;font-size:1.06rem;}
+  .block .lede{font-size:.84rem;color:var(--ink-2);margin:0 0 10px;}
+
+  .chapter{border-left:3px solid var(--brand);padding:2px 0 2px 13px;margin:14px 0;}
+  .chapter .ctitle{font-weight:800;font-size:.95rem;}
+  .chapter .cmeta{font-size:.74rem;margin:3px 0 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .pill{font-size:.66rem;font-weight:800;padding:3px 8px;border-radius:999px;}
+  .pill.stay{background:#e2f1ec;color:var(--brand-d);}
+  .pill.move{background:#fdeadd;color:#b4531f;}
+  .pill.days{background:var(--chip);color:var(--ink-2);}
+  .chapter ul{margin:0;padding-left:18px;}
+  .chapter li{font-size:.85rem;margin-bottom:5px;}
+  .movenote{font-size:.76rem;color:#b4531f;background:#fdeadd;border-radius:9px;padding:7px 9px;margin:6px 0 2px;}
+
+  .dishes{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 14px;}
+  .dish{background:var(--chip);border-radius:10px;padding:7px 10px;font-size:.76rem;}
+  .dish b{display:block;font-size:.8rem;}
+  .dish span{color:var(--ink-3);font-size:.72rem;}
+  .lens{border-radius:13px;padding:11px 12px;margin-top:10px;font-size:.84rem;}
+  .lens .lh{font-weight:800;font-size:.82rem;display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap;}
+  .lens.emma{background:#fef4e7;border:1px solid #f6ddb8;}
+  .lens.sil{background:#eaf3fb;border:1px solid #cfe3f4;}
+  .verdict{display:inline-block;font-size:.64rem;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:auto;text-transform:uppercase;letter-spacing:.04em;}
+  .v-easy{background:#d8efe4;color:#1c6b52;} .v-ok{background:#fbeecb;color:#8a6412;} .v-hard{background:#f8dcdc;color:#a5303a;}
+  .foodcost{font-size:.74rem;color:var(--ink-2);margin-top:12px;} .foodcost b{color:var(--ink);}
+
+  .rrow{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+  .rrow:first-of-type{border-top:none;}
+  .rrow .score{flex:none;background:var(--brand);color:#fff;font-weight:800;font-size:.82rem;border-radius:9px;padding:5px 8px;min-width:44px;text-align:center;}
+  .rrow .rn{font-weight:700;font-size:.86rem;} .rrow .rc{font-size:.72rem;color:var(--ink-3);} .rrow .rw{font-size:.78rem;color:var(--ink-2);margin-top:2px;}
+
+  .ratebox{background:linear-gradient(160deg,#fff,#fbf8f2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:16px;text-align:center;box-shadow:var(--shadow);}
+  .ratebox h3{margin:0 0 3px;font-size:1.05rem;} .ratebox p{margin:0 0 10px;font-size:.78rem;color:var(--ink-3);}
+  .bigstars{display:flex;justify-content:center;gap:8px;margin-bottom:6px;}
+  .bigstars .s{font-size:2.5rem;line-height:1;color:#ddd6c8;transition:color .12s,transform .12s;}
+  .bigstars .s.on{color:var(--gold);} .bigstars .s:active{transform:scale(1.25);}
+  .ratelabel{font-size:.78rem;font-weight:700;color:var(--brand-d);height:1rem;margin-bottom:10px;}
+  textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 11px;font-family:inherit;font-size:.86rem;resize:vertical;min-height:64px;background:var(--surface);color:var(--ink);}
+  textarea::placeholder{color:var(--ink-3);}
+  .ta-label{text-align:left;font-size:.76rem;font-weight:700;color:var(--ink-2);margin:10px 0 5px;}
+  .prevnext{display:flex;gap:10px;margin-top:16px;}
+  .prevnext button{flex:1;padding:13px;border-radius:13px;font-weight:700;font-size:.82rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);}
+  .prevnext .np{background:var(--brand);color:#fff;border-color:transparent;}
+  .prevnext button:disabled{opacity:.4;}
+
+  /* ----- compare ----- */
+  .costcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 15px;margin-bottom:13px;box-shadow:var(--shadow);}
+  .costcard .ch{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .costcard .ch .flag{font-size:1.4rem;} .costcard .ch h3{margin:0;font-size:1.02rem;flex:1;}
+  .costcard .total{font-weight:800;font-size:1.05rem;color:var(--brand-d);} .costcard .per{font-size:.7rem;color:var(--ink-3);text-align:right;}
+  .bar{height:9px;border-radius:99px;background:var(--chip);overflow:hidden;margin:9px 0 10px;}
+  .bar > i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--accent));}
+  .costgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+  .cg{flex:1 1 28%;min-width:64px;background:var(--chip);border-radius:10px;padding:7px 6px;text-align:center;}
+  .cg .k{font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);font-weight:700;}
+  .cg .v{font-size:.8rem;font-weight:700;margin-top:1px;}
+  .daily{margin-top:10px;font-size:.74rem;color:var(--ink-2);display:flex;align-items:center;gap:7px;}
+  .dtier{font-weight:800;letter-spacing:1px;} .dtier .on{color:var(--rose);} .dtier .off{color:#d8d2c6;}
+  .costnote{font-size:.74rem;color:var(--ink-2);margin-top:9px;background:#fbf6ee;border-radius:9px;padding:7px 9px;}
+  .assum{font-size:.72rem;color:var(--ink-3);background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:11px 12px;margin:4px 0 16px;}
+  .whycluster{font-size:.8rem;color:var(--ink-2);background:#eaf3f0;border:1px solid #cfe6de;border-radius:12px;padding:11px 12px;margin-bottom:16px;}
+
+  .vsummary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px;box-shadow:var(--shadow);margin-bottom:14px;}
+  .vitem{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+  .vitem:first-of-type{border-top:none;} .vitem .vrank{flex:none;width:26px;text-align:center;font-weight:800;color:var(--ink-3);}
+  .vitem .vflag{font-size:1.3rem;} .vitem .vname{flex:1;font-size:.9rem;font-weight:600;}
+  .vitem .vstars{color:var(--gold);font-size:.9rem;letter-spacing:1px;white-space:nowrap;} .vitem .vstars .off{color:#ddd6c8;}
+  .btn-big{width:100%;padding:15px;border-radius:14px;font-weight:800;font-size:.95rem;margin-top:12px;}
+  .btn-copy{background:var(--accent);color:#fff;box-shadow:0 10px 22px -10px rgba(232,118,58,.6);}
+  .btn-share{background:var(--surface);color:var(--ink);border:1px solid var(--line);}
+  .btn-reset{background:none;color:var(--ink-3);font-size:.82rem;text-decoration:underline;width:100%;padding:12px;margin-top:6px;}
+  .sharebox{margin-top:14px;background:#fbf7f0;border:1px dashed var(--line);border-radius:13px;padding:13px;font-size:.8rem;white-space:pre-wrap;line-height:1.5;color:var(--ink-2);max-height:280px;overflow:auto;}
+  .roundnote{font-size:.78rem;color:var(--ink-2);background:#eaf3f0;border:1px solid #cfe6de;border-radius:12px;padding:11px 12px;margin-top:14px;}
+
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:rgba(255,255,255,.97);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+    display:flex;max-width:640px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);}
+  .tab{flex:1;padding:9px 4px 10px;text-align:center;color:var(--ink-3);font-size:.66rem;font-weight:700;}
+  .tab .ti{font-size:1.3rem;display:block;line-height:1.1;margin-bottom:1px;filter:grayscale(1) opacity(.6);}
+  .tab.on{color:var(--brand);} .tab.on .ti{filter:none;}
+  .tab .vcount{display:inline-block;background:var(--accent);color:#fff;font-size:.6rem;border-radius:99px;padding:0 5px;margin-left:2px;vertical-align:top;}
+
+  .toast{position:fixed;bottom:calc(86px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(8px);opacity:0;pointer-events:none;background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:.82rem;font-weight:700;z-index:80;transition:.25s;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  footer{padding:24px 6px 8px;text-align:center;font-size:.7rem;color:var(--ink-3);line-height:1.5;}
+</style>
+</head>
+<body>
+
+<div class="appbar"><div class="wrap">
+  <span class="globe">🧭</span>
+  <div style="flex:1">
+    <h1>Summer 2027 · Family Trip Explorer</h1>
+    <p class="sub">6 finalists · rate them, add your thoughts, share back to the group</p>
+  </div>
+</div></div>
+
+<div class="view active" id="view-explore"><div class="wrap pad">
+  <div class="intro">
+    <h2>👋 Pick your favorites</h2>
+    <p>Tap into any place to scroll the photos and read the day-by-day plan, the food scene (including notes for Emmaline &amp; anyone avoiding seafood), where we'd stay, and rough costs.</p>
+    <p>Rate each one <b>1–5 stars</b> right on the card, or after you read the details. When you're done, go to <b>My Votes</b> to copy your picks into our chat.</p>
+    <p class="tiny">Rough numbers are estimates for planning only. Photos need an internet connection to load.</p>
+  </div>
+  <div class="section-label">The 6 finalists</div>
+  <div id="cardList"></div>
+  <footer>Made for our family trip · Research July 2026 · Prices &amp; ratings approximate.</footer>
+</div></div>
+
+<div class="view" id="view-costs"><div class="wrap pad">
+  <div class="intro">
+    <h2>💰 Rough all-in cost comparison</h2>
+    <p>Full estimate for the <b>whole group of 7</b> (5 adults + Emma + the baby), ~8 days. Now includes <b>flights + lodging + food + activities + local transport/car</b> — not just the fixed costs.</p>
+  </div>
+  <div class="whycluster" id="whyBox"></div>
+  <div class="assum" id="assumBox"></div>
+  <div class="section-label">Sorted cheapest → priciest (full all-in)</div>
+  <div id="costList"></div>
+  <footer>Estimates only — real 2027 fares/rates will vary. Built to spot the real spread, not to book against.</footer>
+</div></div>
+
+<div class="view" id="view-votes"><div class="wrap pad">
+  <div class="intro">
+    <h2>🗳️ My votes &amp; thoughts</h2>
+    <p>Here's your ranking so far. Add any overall thoughts, vetoes, or wishes below, then hit copy and paste it into our family chat or email.</p>
+  </div>
+  <div class="vsummary" id="voteSummary"></div>
+  <div class="vsummary globalfb">
+    <div class="ta-label">💬 Overall thoughts (optional)</div>
+    <textarea id="fb-thoughts" placeholder="What are you leaning toward and why? What matters most to you for this trip?"></textarea>
+    <div class="ta-label">🚫 Anything you'd rather NOT do?</div>
+    <textarea id="fb-veto" placeholder="e.g. 'no long fjord travel days', 'skip anywhere too cold', 'don't want to change hotels mid-trip'…"></textarea>
+    <div class="ta-label">✨ Something you'd want to ADD (an activity or city not listed)?</div>
+    <textarea id="fb-wish" placeholder="e.g. 'a cooking class', 'a beach day', 'what about Copenhagen or Switzerland?'…"></textarea>
+    <div class="ta-label">🌍 Other places you'd consider?</div>
+    <textarea id="fb-other" placeholder="Any destinations we haven't looked at yet?"></textarea>
+  </div>
+  <button class="btn-big btn-copy" onclick="copyOut()">📋 Copy my picks to share</button>
+  <button class="btn-big btn-share" onclick="shareOut()">📤 Share…</button>
+  <button class="btn-reset" onclick="resetAll()">Clear everything &amp; start over</button>
+  <div class="roundnote">📮 <b>How this works:</b> everyone fills this out on their own phone and pastes their results into our group chat. Once we see where everyone leans, I'll narrow it to 2 and send a <b>round two</b> with more detail on the finalists.</div>
+  <div class="sharebox" id="shareBox">Rate a few places first…</div>
+  <footer>Nothing is sent automatically — your picks only leave this page when you copy/share them.</footer>
+</div></div>
+
+<div class="detail" id="detail">
+  <div class="detail-top">
+    <button class="back" onclick="closeDetail()">‹ Back</button>
+    <div class="dt-name" id="dtName"></div>
+  </div>
+  <div id="detailBody"></div>
+</div>
+
+<div class="tabbar">
+  <button class="tab on" id="tab-explore" onclick="showView('explore')"><span class="ti">🗺️</span>Explore</button>
+  <button class="tab" id="tab-costs" onclick="showView('costs')"><span class="ti">💰</span>Costs</button>
+  <button class="tab" id="tab-votes" onclick="showView('votes')"><span class="ti">🗳️</span>My Votes<span class="vcount" id="voteCount" style="display:none">0</span></button>
+</div>
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+function img(file){ return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(file) + '?width=1200'; }
+
+const DEST = [
+  {
+    id:'como', name:'Lake Como', country:'Lombardy, Italy', flag:'🇮🇹', emoji:'🚤', fa:'#2e6b6f', fb:'#17383f',
+    tagline:'Gelato, ferries & pastel villages on a glassy alpine lake', badge:'✈️ Nonstop both cities',
+    climate:{hi:'79°F', lo:'64°F', note:'Warm but not hot; brief afternoon showers possible'},
+    window:'First ~10 days of July — warm, clearer mornings, lighter crowds before the August peak',
+    facts:[['🌡️','79°F'],['✈️','Nonstop DFW & MIA'],['🏡','1 base']],
+    gallery:[
+      {file:'Bellagio - Lario Ferry on Lake Como.jpg', cap:'Ferries link the villages — no long car rides'},
+      {file:'Panoramic view of Varenna - Lake Como.jpg', cap:'Varenna, a quiet base on the eastern shore'},
+      {file:'Villa Balbianello on Como Lake 8.jpg', cap:'Villa del Balbianello — the movie-set villa'},
+      {file:'View of Lake Como from Villa Monastero, Varenna.jpg', cap:'Villa Monastero gardens, Varenna'},
+      {file:'Gelato.jpg', cap:'Gelato + lakeside strolls most evenings'},
+      {file:'Veduta del lago di Como da Bellagio.jpg', cap:'The classic Bellagio panorama'}
+    ],
+    days:[
+      {title:'Settle into Varenna', base:'Varenna', range:'Days 1–4', type:'stay',
+        items:['Train in from Milan; drop bags at a lakefront apartment','Walk the "Lovers\' Path" promenade to the harbor','Hilltop Castello di Vezio — falconry + big views','Short ferry to Bellagio: stepped alleys + free Villa Melzi gardens','Sunset aperitivo watching the boats cross']},
+      {title:'Shift across the lake', base:'Menaggio / Tremezzina', range:'Days 4–8', type:'move',
+        move:'Optional hop: Varenna → Menaggio by car ferry, ~15–20 min. (Or just stay in Varenna the whole time — the lake "triangle" is small.)',
+        items:['Villa Carlotta gardens + café (stroller-friendly)','Boat to Villa del Balbianello promontory','Menaggio lakefront lido/pool + easy valley walks','Half-day to Como city: funicular to Brunate + the best ramen/rice spots']}
+    ],
+    food:{
+      reputation:'Solid, comforting Northern-Italian cooking — good but not a world-famous food scene. Lots of polenta, cured meats, cheeses, risotto and lake fish.',
+      dishes:[['Polenta uncia','like rich cheese-grits'],['Risotto','creamy rice; lake-fish version is local'],['Pizzoccheri','rustic buckwheat mac-&-cheese-ish pasta'],['Bresaola','lean air-dried beef, like prosciutto'],['Casoeula','pork & cabbage stew'],['Gelato','the daily kid win']],
+      emma:{v:'ok', t:'Fries, plain bread, pizza margherita and pasta al burro (butter) are everywhere and easy asks. White rice is available and Como city has real ramen. Nuggets & Kraft mac won\'t be standard — a rental kitchen fixes that. Pho / Korean BBQ are essentially absent lakeside.'},
+      sil:{v:'easy', t:'Despite the lake-fish reputation, the food is very meat-and-cheese heavy (polenta, salumi, risotto, pizza, breaded veal). Avoiding all seafood is straightforward — just skip the perch risotto.'},
+      cost:2
+    },
+    lodging:'Strong Airbnb/VRBO supply in Varenna, Bellagio & Menaggio, plus 3–4★ hotels and B&Bs. For 7 people, 1–2 whole apartments (or a small villa) with kitchen + washer usually beats 3 hotel rooms. Dryers are rare (air-drying is normal).',
+    flights:{dfw:'DFW → Milan (MXP) nonstop, ~11.5h · ~$1,100–1,300 RT', mia:'MIA → Milan (MXP) nonstop (American) · ~$900–1,300 RT', ground:'No car needed — the ferry triangle covers everything. Train/private van from Milan ~2–3h.'},
+    ratings:[
+      {n:'Villa del Balbianello', s:4.7, c:'~3,600', w:'Cinematic promontory villa & gardens (Star Wars, 007)'},
+      {n:'Villa Carlotta', s:4.6, c:'~3,450', w:'Botanical gardens + art over a lakeside estate'},
+      {n:'Villa Melzi Gardens (Bellagio)', s:4.5, c:'~2,500', w:'Manicured lakeside gardens, endless photo spots'}
+    ],
+    cost:{flights:7750, lodging:4800, food:2000, activities:600, ground:500, tier:2,
+      note:'Best-in-class flights (true nonstop for both families). Mid-priced day-to-day — one of the most budget-friendly all-in.'}
+  },
+
+  {
+    id:'sansebastian', name:'San Sebastián & Bilbao', country:'Basque Country, Spain', flag:'🇪🇸', emoji:'🥘', fa:'#b5652f', fb:'#6d3a19',
+    tagline:'World-class food, a golden bay & Bilbao\'s knockout Guggenheim', badge:'🍴 Foodie capital',
+    climate:{hi:'74°F', lo:'63°F', note:'One of Spain\'s mildest summers; occasional coastal showers'},
+    window:'First two weeks of July — settled & warm, safely before the big Aug 8–15 Semana Grande crowd/price spike',
+    facts:[['🌡️','74°F'],['✈️','Nonstop + short hop'],['🏡','2 bases']],
+    gallery:[
+      {file:'Playa de la Concha, San Sebastián.jpg', cap:'La Concha — a calm, shallow, shell-shaped city beach'},
+      {file:'Bilbao - Guggenheim aurore.jpg', cap:'The Guggenheim, Bilbao — the trip\'s knockout building'},
+      {file:'Barra de pintxos Donosti 07.JPG', cap:'Pintxos bars — casual grazing, perfect with kids'},
+      {file:'Casco Viejo de Bilbao.jpg', cap:'Bilbao\'s spotless, unique Casco Viejo old town'},
+      {file:'Monte Igueldo, San Sebastian.jpg', cap:'Monte Igueldo funicular + the postcard bay view'},
+      {file:'Atardecer - Playa de la Concha - San Sebastian 02.jpg', cap:'Sunset over the bay'}
+    ],
+    days:[
+      {title:'Land & explore Bilbao', base:'Bilbao', range:'Days 1–3', type:'stay',
+        items:['Fly into Bilbao — famously clean, walkable & full of surprises','The Guggenheim: Gehry\'s titanium landmark + Jeff Koons\' flower "Puppy" (a genuine wow, even for kids)','Casco Viejo old town + the Ribera covered market for a relaxed pintxos lunch','Funicular up Artxanda for the panorama over the city']},
+      {title:'Relocate to San Sebastián', base:'San Sebastián', range:'Days 3–8', type:'move',
+        move:'Short leg: Bilbao → San Sebastián ~1h15 by bus or car — easy, toddler-friendly. A clean 2-base trip.',
+        items:['Beach mornings on La Concha — gentle, shallow, family-safe swimming','Pintxos crawl through the Parte Vieja (casual grazing suits kids)','Monte Urgull walk + the vintage Monte Igueldo funicular for the bay view','Day trips: Biarritz, France (~45 min) & the walled town of Hondarribia (~35 min)']}
+    ],
+    food:{
+      reputation:'Per capita one of the greatest eating cities on earth — birthplace of modern pintxos, dense with Michelin stars. The only catch is it\'s seafood-forward by default (strategy below).',
+      dishes:[['Pintxos','upscale tapas grazing crawl'],['Txuleta','a spectacular bone-in ribeye/tomahawk'],['Tortilla de patata','potato-&-egg omelet'],['Idiazabal','smoky aged sheep cheese, like Manchego'],['Jamón ibérico','world-class cured ham'],['Basque cheesecake','burnt-top custardy cheesecake']],
+      emma:{v:'ok', t:'Reliable wins: plain bread everywhere, fries, tortilla (egg+potato), plain rice/pasta on request, and txuleta steak + jamón. "Kraft mac" won\'t exist (kitchen fixes it). Asian food is limited but present — ramen shops and at least one pho spot, so rice/ramen/pho are doable. Korean BBQ is the gap.'},
+      sil:{v:'ok', t:'Honest: this is the one place seafood really matters. Good news — the Basque Country is equally famous for beef (txuleta), ham, sheep cheese, egg dishes & vegetable pintxos, and steakhouses (asadores) are safe havens. But pintxos bars are anchovy/cod/shellfish-heavy with real cross-contact, so with a true allergy she\'ll want a Spanish allergy card and should order deliberately. Doable, not effortless.'},
+      cost:2
+    },
+    lodging:'Two bases: a couple of nights in Bilbao (clean, central Abando/Casco Viejo apartments or 3–4★ hotels) then a whole-apartment base in San Sebastián (old town / Gros / Centro). For 7, 1–2 apartments with kitchen + laundry beat separate hotel rooms and solve Emma\'s + SIL\'s food needs. San Sebastián summer is genuinely pricey and sells out months ahead — book early.',
+    flights:{dfw:'DFW → Madrid nonstop, then MAD→Bilbao (~1h) · ~$1,000–1,600 + ~$80–200 hop', mia:'MIA → Madrid nonstop, then same hop · ~$900–1,500 + hop', ground:'Bilbao airport → San Sebastián: bus ~€14/person (~1h15) or private van ~€120–180. 1–2 rental cars handy for day trips.'},
+    ratings:[
+      {n:'La Concha Beach', s:4.7, c:'~9,300', w:'A genuinely stunning, swimmable city beach'},
+      {n:'Parte Vieja (Old Town)', s:4.5, c:'~4,600', w:'The atmospheric pintxos heart of the city'},
+      {n:'Guggenheim Bilbao', s:4.4, c:'~18,500', w:'Iconic Gehry architecture; wows even non-art-lovers'},
+      {n:'Monte Igueldo', s:4.2, c:'~3,700', w:'Best bay panorama via a charming old funicular'}
+    ],
+    cost:{flights:8450, lodging:5200, food:2400, activities:800, ground:700, tier:3,
+      note:'Fair point — San Sebastián is a fancy, pricey resort town, so this is revised up (especially lodging, which is scarce & expensive in peak July). Still cheaper day-to-day than Scandinavia. Mildest climate + arguably the best food, and Bilbao makes a clean, memorable first base.'}
+  },
+
+  {
+    id:'amsterdam', name:'Amsterdam', country:'Netherlands', flag:'🇳🇱', emoji:'🚲', fa:'#3a5a2e', fb:'#1f2f17',
+    tagline:'Canals, bikes, big museums & a fairytale car-free water village', badge:'✈️ Nonstop both cities',
+    climate:{hi:'72°F', lo:'54°F', note:'Mild, long days (sunset ~10pm); pack light rain layers'},
+    window:'First ~2 weeks of July — warmest-but-mild, ahead of the late-July peak. Pre-book museums either way',
+    facts:[['🌡️','72°F'],['✈️','Nonstop DFW & MIA'],['🏡','1 base']],
+    gallery:[
+      {file:'Amsterdam Canal with boat.jpg', cap:'The UNESCO canal ring by boat'},
+      {file:'Giethoorn Netherlands Channels-and-houses-of-Giethoorn-16.jpg', cap:'Giethoorn — the car-free "Venice of the North"'},
+      {file:'Zaanse Schans - Windmills 3.jpg', cap:'Zaanse Schans windmills — 15 min by train'},
+      {file:'Stroopwafels 01.jpg', cap:'Warm stroopwafels straight off the iron'},
+      {file:'A canal in Amsterdam - Sarah Stierch.jpg', cap:'Gabled canal houses everywhere you look'},
+      {file:'Netherlands, Giethoorn (02), tourism.jpg', cap:'Whisper-boats glide past thatched cottages'}
+    ],
+    days:[
+      {title:'Amsterdam core', base:'Amsterdam', range:'Days 1–4', type:'stay',
+        items:['Open-top canal cruise through the canal ring','Vondelpark picnic + cargo-bike loop with the kids','Rijksmuseum (kids\' treasure-hunt trails) + Van Gogh Museum','NEMO Science Museum (hands-on) + its free rooftop terrace']},
+      {title:'Countryside day trips', base:'Amsterdam (same base)', range:'Days 5–6', type:'stay',
+        items:['Zaanse Schans windmills — ~15 min train, village free to wander','Giethoorn whisper-boat village as a long day trip','Or mellow Haarlem (~15 min) for a market-town day']},
+      {title:'Optional slow village night', base:'Giethoorn', range:'Days 7–8', type:'move',
+        move:'Only if you want a nature change of pace: Amsterdam → Giethoorn ~1.5–2h by car. Recommended plan is to keep Amsterdam as your single base and do Giethoorn as a day trip.',
+        items:['Rent a canal cottage + self-drive electric boat','Bike the quiet polder paths']}
+    ],
+    food:{
+      reputation:'Like the UK: modest native cooking, but a fantastic international scene. The star is Indonesian rijsttafel (a "rice table" feast of many small dishes), plus great Surinamese, Vietnamese, Korean, Turkish & more.',
+      dishes:[['Stroopwafel','warm caramel sandwich-cookie'],['Bitterballen','fried beef-ragout balls, like gravy croquettes'],['Poffertjes','fluffy mini pancakes'],['Patat','thick fries with mayo'],['Gouda','a nuttier cheddar'],['Rijsttafel','Indonesian shared-plate feast']],
+      emma:{v:'easy', t:'A strong spot for her. Dutch fries are everywhere, pancake houses (poffertjes) are kid magnets, and plain bread + Gouda are café staples. Crucially Amsterdam has a real Asian scene — legit pho, ramen and Korean BBQ (bulgogi/galbi). Boxed mac & nuggets from an Albert Heijn supermarket cover the rest.'},
+      sil:{v:'easy', t:'Aside from herring stands, seafood is very easy to avoid — the scene is full of meat, satay, bulgogi, roti, pancakes, cheese and Turkish/Middle-Eastern grills. Just double-check Indonesian shared platters. Low friction.'},
+      cost:3
+    },
+    lodging:'Note Amsterdam\'s strict short-let rules (private Airbnbs capped ~30 nights/yr, max 4 guests, permit required) — so licensed aparthotels, B&Bs and houseboats are the reliable kitchen-equipped route. An apartment/aparthotel or houseboat + one extra room usually beats 3 hotel rooms. Confirm a dryer specifically.',
+    flights:{dfw:'DFW → Amsterdam nonstop (American), ~9h25m · ~$1,050–1,450 RT', mia:'MIA → Amsterdam nonstop (KLM), ~8h40m · ~$900–1,350 RT', ground:'No car. Train Schiphol → Centraal ~€6, 15–20 min (or 2 taxis with the baby & bags). Giethoorn ~1.5–2h by car or a guided day tour.'},
+    ratings:[
+      {n:'Rijksmuseum', s:4.6, c:'~48,500', w:'Dutch Golden Age masterpieces + kids\' trails'},
+      {n:'Van Gogh Museum', s:4.5, c:'~65,900', w:'World\'s largest Van Gogh collection; compact'},
+      {n:'Anne Frank House', s:4.5, c:'~64,700', w:'Deeply moving & historic (book weeks ahead)'},
+      {n:'Zaanse Schans', s:4.5, c:'~ (high)', w:'Free open-air windmill village, easy half-day'}
+    ],
+    cost:{flights:7450, lodging:4960, food:2600, activities:1000, ground:400, tier:3,
+      note:'Nonstop for both families + no car. Flattest, most stroller-friendly city. Museums are pricey (Rijks/Van Gogh/Anne Frank ~$25–30 each) and food is a notch above Spain/Italy.'}
+  },
+
+  {
+    id:'stockholm', name:'Stockholm', country:'Sweden', flag:'🇸🇪', emoji:'⛴️', fa:'#2e5170', fb:'#172a3a',
+    tagline:'Storybook old town + island-hopping by ferry — a calmer pace', badge:'🧸 Very kid-friendly',
+    climate:{hi:'71°F', lo:'54°F', note:'Comfortable days, cool evenings, ~17h daylight'},
+    window:'First two weeks of July — warm & long-lit, city calm (locals on holiday). Arrive early July to skip the late-June Midsummer shutdown',
+    facts:[['🌡️','71°F'],['✈️','1 stop'],['🏡','1 base']],
+    gallery:[
+      {file:'Stortorget i Gamla Stan i Stockholm-2.JPG', cap:'Gamla Stan\'s colorful main square'},
+      {file:'Stern of the Vasa ship, Vasa Museum, Stockholm, Sweden julesvernex2-2.jpg', cap:'The Vasa — an intact 1628 warship'},
+      {file:'Swedish.food-Köttbullar med lingon-01.jpg', cap:'Swedish meatballs + lingonberry (the IKEA win)'},
+      {file:'Vaxholm 5899 (3209050419).jpg', cap:'Vaxholm — an easy archipelago ferry town'},
+      {file:'Swede 55 sailboat in Stockholm archipelago, Sweden.jpg', cap:'Pine-and-granite islands, an hour by boat'},
+      {file:'Stockholm-Altstadt-(gamla-stan).jpg', cap:'Old-town waterfront lanes'}
+    ],
+    days:[
+      {title:'Djurgården & central Stockholm', base:'Stockholm', range:'Days 1–4', type:'stay',
+        items:['Vasa Museum — the eerily intact warship (the must-do)','Skansen open-air museum + Nordic zoo (top pick for a 7-yo)','Junibacken — the Pippi Longstocking story-train','Gamla Stan old town + a fika (coffee + cinnamon bun) stop']},
+      {title:'Archipelago day trips', base:'Stockholm (same base)', range:'Days 5–6', type:'stay',
+        items:['Ferry to Vaxholm (~50–75 min): wooden houses + fortress','Fjäderholmarna (~25 min): the closest island taste','Optional Grinda for a fuller nature/swim day (~2h)']},
+      {title:'Culture + easy wins', base:'Stockholm (same base)', range:'Days 7–8', type:'stay',
+        items:['ABBA The Museum sing-along','Optional Uppsala day trip (~40 min train)','Park picnic + buffer day before flying home']}
+    ],
+    food:{
+      reputation:'Comforting and meat-forward (hello, IKEA meatballs), with a strong modern-Nordic + international scene on top. It is expensive — Scandinavian prices throughout.',
+      dishes:[['Köttbullar','literally the IKEA meatballs — instantly familiar'],['Kanelbullar','cardamom cinnamon buns'],['Grillad korv','beloved street hot dogs'],['Falukorv','a giant mild bologna/kielbasa'],['Toast Skagen','creamy shrimp toast (seafood)'],['Fika pastries','the daily coffee-&-cake ritual']],
+      emma:{v:'easy', t:'One of the easier European cities for her: meatballs, hot dogs (korv), fries, plain pasta, cinnamon buns and bread are everywhere, and kids\' menus often have nuggets/pasta. Stockholm also has a real Asian scene — ramen, pho, Korean — so rice/ramen/bulgogi are findable.'},
+      sil:{v:'easy', t:'Yes there\'s iconic seafood (herring, gravlax, shrimp toast), but Swedish food is heavily meat-based — meatballs, sausages, reindeer, steak, schnitzel — and seafood dishes are easy to identify and skip. Low risk of hidden seafood.'},
+      cost:3
+    },
+    lodging:'Dense Airbnb/VRBO apartments (Södermalm, Östermalm, Vasastan) plus aparthotels that pair hotel service with kitchens — ideal here. A large 3-bed central apartment often beats 3 hotel rooms and gives kitchen + laundry. Scandinavia is pricey — book ahead.',
+    flights:{dfw:'DFW → Stockholm (ARN), 1 stop via a European hub or Reykjavik · ~$1,000–1,500 RT', mia:'MIA → Stockholm (ARN), 1 stop · ~$900–1,400 RT', ground:'No car. Arlanda Express train ~18 min (kids free w/ adult) + metro/tram + ferries. An SL pass even covers inner-archipelago ferries.'},
+    ratings:[
+      {n:'Vasa Museum', s:4.7, c:'~34,900', w:'The world\'s only intact 17th-century ship'},
+      {n:'Gamla Stan (Old Town)', s:4.6, c:'~20,800', w:'Storybook cobbled lanes, free to wander'},
+      {n:'Skansen', s:4.3, c:'~11,660', w:'Living-history village + Nordic zoo (family favorite)'},
+      {n:'Junibacken', s:4.2, c:'~1,765', w:'Pippi Longstocking play world for young kids'}
+    ],
+    cost:{flights:8150, lodging:4480, food:3400, activities:1100, ground:450, tier:3,
+      note:'Unusually easy with kids (1 base, no car, meatballs). Downsides: one stop each way, and Sweden is expensive day-to-day — food/drinks add up fast.'}
+  },
+
+  {
+    id:'norway', name:'Norway — Bergen & Fjords', country:'Norway', flag:'🇳🇴', emoji:'⛰️', fa:'#4a5a38', fb:'#242e1a',
+    tagline:'The most dramatic scenery on the list — fjords, wharves & trains', badge:'🏔️ Biggest "wow" scenery',
+    climate:{hi:'63°F', lo:'52°F', note:'Cool & green; Bergen is rainy — expect showers on some days'},
+    window:'First ~2 weeks of July — slightly warmer/drier & max daylight. Honest: Bergen is one of Europe\'s rainiest cities, so pack shells',
+    facts:[['🌡️','63°F'],['✈️','1 stop + hop'],['🏡','2 bases']],
+    gallery:[
+      {file:'Bryggen Bergen.jpg', cap:'Bryggen — Bergen\'s colorful Hanseatic wharf'},
+      {file:'Nærøyfjord, Norway (29679189382).jpg', cap:'The narrow UNESCO Nærøyfjord'},
+      {file:'Flåmsbana train at Flåm Station.jpg', cap:'The scenic Flåm Railway'},
+      {file:'Fløyen view on Bergen edit.jpg', cap:'View over Bergen from Mt Fløyen'},
+      {file:'Nærøyfjorden.jpg', cap:'Fjord walls dropping straight to the water'},
+      {file:'View of Bryggen - Bergen, Norway.jpg', cap:'Crooked wooden alleys of the old wharf'}
+    ],
+    days:[
+      {title:'Bergen', base:'Bergen', range:'Days 1–4', type:'stay',
+        items:['Wander Bryggen\'s colorful wooden wharf (flat, stroller-friendly)','Fløibanen funicular up Mt Fløyen: trails, playground, goats, café','Fish market (non-fish stalls nearby for Emma & SIL)','Ulriken cable car for the biggest panoramas']},
+      {title:'The fjords — 2 ways to do it', base:'Flåm', range:'Days 5–7', type:'move',
+        move:'Recommended for your group: RELOCATE to Flåm for 2–3 nights so the legs stay short. (Alternative: do the whole "Norway in a Nutshell" loop as ONE long ~10–12h day trip from Bergen and never repack — but that\'s a lot for a 1-year-old.)',
+        items:['Nærøyfjord cruise through the narrowest UNESCO arm (~2h, electric boats)','Flåm Railway up to Myrdal past the Kjosfossen waterfall','Tiny goat-cheese village of Undredal or Aurland time']},
+      {title:'Back to Bergen', base:'Bergen', range:'Days 7–8', type:'move',
+        move:'Loop back to Bergen (the airport) for departure.',
+        items:['Wet-day backups: KODE art museums or Gamle Bergen open-air museum']}
+    ],
+    food:{
+      reputation:'High-quality but simple and among the most expensive dining in Europe. Very seafood-forward (salmon, cod). International options exist but are modest — self-catering saves real money.',
+      dishes:[['Grilled salmon','premium fresh salmon (seafood)'],['Fiskekaker','fish cakes (seafood)'],['Reindeer','lean game, like rich beef — a great non-fish dish'],['Brunost','sweet caramel-brown cheese'],['Vafler','soft heart-shaped waffles'],['Pølse','hot dogs — the cheapest hot meal in Norway']],
+      emma:{v:'ok', t:'Her "safe" list holds: pølse (hot dogs) are everywhere, plus fries, waffles, bread & plain pasta. Bergen does have some Vietnamese/pho, Korean and ramen — just fewer and pricier. Bring boxed mac/nuggets from home; the kitchen rental is real insurance.'},
+      sil:{v:'hard', t:'Be honest — Bergen brands itself a seafood capital, so the signature experiences (fish market, fish soup, fishcakes) are largely off-limits. She won\'t go hungry (reindeer, beef, hot dogs, cheese/waffles, pizza, the Asian spots), but she\'ll skip the town\'s headline dishes and must watch for fish-based broths. A real, if manageable, drawback.'},
+      cost:4
+    },
+    lodging:'Good hotel + apartment supply in Bergen; Flåm is small so book its limited hotels/cabins early. Apartments with kitchen + laundry are usually the better value for 7. Flag: Norway is among the most expensive on the list — self-catering is your biggest cost lever.',
+    flights:{dfw:'DFW → Bergen: 1 stop via a hub (or via Oslo + ~55-min hop) · ~$900–1,300 RT', mia:'MIA → Bergen: 1 stop, comparable · ~$900–1,300 RT', ground:'No car needed — the fjord route runs on train/boat/bus. Airport light rail into Bergen ~$4.'},
+    ratings:[
+      {n:'Mt Fløyen & funicular', s:4.6, c:'~12,670', w:'6-min ride to trails, playground, goats & the best view'},
+      {n:'Bryggen Wharf', s:4.5, c:'~6,100', w:'Colorful UNESCO wooden wharf & alleys'},
+      {n:'Mt Ulriken cable car', s:4.5, c:'~1,670', w:'Highest of the seven mountains; sweeping views'},
+      {n:'Nærøyfjord cruise', s:4.7, c:'~ (high)', w:'Gliding through Europe\'s most dramatic fjord'}
+    ],
+    cost:{flights:8250, lodging:4960, food:4200, activities:1500, ground:700, tier:4,
+      note:'Cheap-ish flights, but daily food is the priciest tier and the fjord cruise/railway tickets add up. Most logistically involved (a base change). Two honest catches: rain odds and SIL\'s seafood constraint.'}
+  },
+
+  {
+    id:'iceland', name:'Iceland', country:'Reykjavík & the South', flag:'🇮🇸', emoji:'♨️', fa:'#3a4a4a', fb:'#1a2424',
+    tagline:'Waterfalls, geysers & warm geothermal pools — like nowhere else', badge:'🌋 Totally different',
+    climate:{hi:'55°F', lo:'48°F', note:'Coolest option by far — pack real layers & rain gear even in July'},
+    window:'July 5–18 — warmest, driest stretch with near-24h daylight. Peak season though: priciest & busiest, so book 6–9 months out',
+    facts:[['🌡️','55°F'],['✈️','MIA nonstop / DFW 1 stop'],['🏡','2 bases']],
+    gallery:[
+      {file:'Gullfoss, an iconic waterfall of Iceland.jpg', cap:'Gullfoss — a thunderous two-tier waterfall'},
+      {file:'Strokkur Geysir (14135319580) (cropped).jpg', cap:'Strokkur erupts every 5–10 min'},
+      {file:'Seljalandsfoss waterfall (Iceland) (16096296723).jpg', cap:'Seljalandsfoss — walk behind the falls'},
+      {file:'Hallgrimskirkja Reykjavik.jpg', cap:'Reykjavík & its landmark church'},
+      {file:'Reynisfjara-66-Basalt-2018-gje.jpg', cap:'Reynisfjara black-sand beach & basalt columns'},
+      {file:'Iceland horse.jpg', cap:'Famously gentle Icelandic horses'}
+    ],
+    days:[
+      {title:'Reykjavík + Golden Circle', base:'Reykjavík', range:'Days 1–4', type:'stay',
+        items:['Colorful old-town streets + up the Hallgrímskirkja tower','Golden Circle DAY TRIP (~4h driving): Þingvellir rift, Geysir/Strokkur, Gullfoss','Geothermal soak — Sky Lagoon, or the family pool Laugardalslaug with slides','Whale watching from the old harbor']},
+      {title:'South Coast', base:'Vík or Hella', range:'Days 5–7', type:'move',
+        move:'RELOCATE east — the South Coast is too far to day-trip comfortably (Vík ~2.5h each way). Overnight in Vík or Hella. A rental minivan / two cars is essential in Iceland.',
+        items:['Seljalandsfoss (walk behind it) + powerful Skógafoss','Reynisfjara black-sand beach (mind the dangerous "sneaker waves")','Gentle Icelandic-horse farm visit — a big 7-yo win']},
+      {title:'Return / departure', base:'Reykjavík → KEF', range:'Day 8', type:'move',
+        move:'Drive back (~2.5h) or straight to the airport (~2h). Slot the Blue Lagoon in here — it\'s ~20 min from KEF.',
+        items:['Optional Blue Lagoon soak en route to the flight']}
+    ],
+    food:{
+      reputation:'Clean, simple, lamb-and-fish forward — and very expensive. Reykjavík punches above its weight with a small international scene (incl. some Asian); outside the city, options thin out fast.',
+      dishes:[['Icelandic hot dog (pylsa)','the national obsession — a great hot dog'],['Kjötsúpa','hearty lamb & root-veg soup'],['Skyr','thick mild yogurt-cheese'],['Lamb','tender, clean-tasting'],['Rye bread','moist, slightly sweet pumpernickel'],['Arctic char','mild salmon-like fish (seafood)']],
+      emma:{v:'ok', t:'Big win on the famous Icelandic hot dogs (plain + ketchup), plus fries, plain bread, skyr and pasta. Reykjavík has real ramen and pho. Outside the city on driving days, options are sparse and costly — pack snacks/a cooler and lean on the kitchen (bring boxed mac from the US; scarce here).'},
+      sil:{v:'ok', t:'Despite the fishy reputation, lamb, beef, hot dogs, soup, burgers, pizza and Reykjavík\'s Asian spots make avoiding seafood straightforward in the city. On the South Coast the choices shrink and lean more fish — but hot dogs, soup and burgers exist at most stops, and the kitchen removes the road-night friction.'},
+      cost:4
+    },
+    lodging:'Reykjavík has the densest options — aparthotels, hotels, guesthouses and lots of Airbnb/VRBO apartments (kitchen + laundry). South Coast is mostly guesthouses/cottages around Vík/Hella that sell out early for July. Flag: among the most expensive on the list — reserve 6–9 months ahead.',
+    flights:{dfw:'DFW → Reykjavík (KEF): 1 stop via an Icelandair US gateway · ~$900–1,300 RT', mia:'MIA → Reykjavík nonstop (Icelandair, ~7.5h, new route) · ~$800–1,200 RT', ground:'A 7-seat minivan or two cars is essential (~$120–200+/day). Reserve car seats early; KEF is ~45 min from Reykjavík; fuel is pricey. 2WD is fine.'},
+    ratings:[
+      {n:'Gullfoss', s:4.7, c:'~12,540', w:'Iceland\'s most famous falls — thunderous two-tier cascade'},
+      {n:'Seljalandsfoss', s:4.7, c:'~3,120', w:'The waterfall you can walk behind'},
+      {n:'Reynisfjara black-sand beach', s:4.7, c:'~2,220', w:'Basalt columns, sea stacks & pounding surf'},
+      {n:'Þingvellir National Park', s:4.6, c:'~4,280', w:'Walk between two continental plates'},
+      {n:'Blue Lagoon', s:4.4, c:'~20,290', w:'Iconic milky-blue geothermal soak (book timed entry)'}
+    ],
+    cost:{flights:6450, lodging:5440, food:4400, activities:1300, ground:1800, tier:4,
+      note:'Miami gets a brand-new nonstop, so the cheapest airfare here — BUT a mandatory rental van + Iceland\'s very high food/fuel make it the priciest all-in. The most unlike-anything option.'}
+  }
+];
+
+let ratings = {}, cityNotes = {}, curIndex = 0;
+const RATE_WORDS = ['','Not for me','Meh','Could work','Really like it','Dream trip!'];
+const money = n => '$'+n.toLocaleString();
+const allIn = c => c.flights + c.lodging + c.food + c.activities + c.ground;
+
+function starRow(id,val){ let h=''; for(let n=1;n<=5;n++){h+=`<span class="s ${n<=val?'on':''}" data-n="${n}">★</span>`;} return h; }
+
+/* ---------- media block (full photo, blurred backdrop) ---------- */
+function mediaHTML(d, file, cap, extra){
+  const u = img(file);
+  return `<div class="mbg" style="background-image:url('${u}')"></div>
+          <img src="${u}" alt="" loading="lazy" onerror="this.style.display='none'">
+          ${extra||''}${cap?`<div class="cap">${cap}</div>`:''}`;
+}
+
+/* ---------- Explore list ---------- */
+function renderCards(){
+  const host=document.getElementById('cardList');
+  host.innerHTML = DEST.map(d=>`
+    <div class="dcard" style="--fa:${d.fa};--fb:${d.fb}">
+      <div class="cover media" onclick="openDetail('${d.id}')">
+        ${mediaHTML(d, d.gallery[0].file, '', `<div class="scrim"></div><div class="badge">${d.badge}</div><div class="cap"><h3>${d.name}</h3><span class="flag">${d.flag}</span></div>`)}
+      </div>
+      <div class="body">
+        <p class="tagline">${d.tagline}</p>
+        <div class="facts">${d.facts.map(f=>`<span class="fact">${f[0]} <b>${f[1]}</b></span>`).join('')}</div>
+        <div class="row">
+          <div class="rate-inline" data-id="${d.id}">${starRow(d.id, ratings[d.id]||0)}</div>
+          <button class="btn-detail" onclick="openDetail('${d.id}')">Details →</button>
+        </div>
+        <div class="rated-tag" id="rt-${d.id}">${ratings[d.id]?('You rated this '+ratings[d.id]+'★'):''}</div>
+      </div>
+    </div>`).join('');
+  host.querySelectorAll('.rate-inline').forEach(row=>{
+    const id=row.dataset.id;
+    row.querySelectorAll('.s').forEach(st=>st.addEventListener('click',e=>{e.stopPropagation();setRating(id,parseInt(st.dataset.n));}));
+  });
+}
+
+function setRating(id,n){
+  ratings[id]=n;
+  document.querySelectorAll(`.rate-inline[data-id="${id}"] .s`).forEach(s=>s.classList.toggle('on',parseInt(s.dataset.n)<=n));
+  const rt=document.getElementById('rt-'+id); if(rt) rt.textContent='You rated this '+n+'★';
+  if(document.getElementById('detail').classList.contains('active') && DEST[curIndex].id===id){
+    document.querySelectorAll('#bigstars .s').forEach(s=>s.classList.toggle('on',parseInt(s.dataset.n)<=n));
+    const lab=document.getElementById('rateLabel'); if(lab) lab.textContent=RATE_WORDS[n];
+  }
+  updateVoteCount();
+  toast(n>=4?'❤️ Noted!':'Saved');
+}
+
+/* ---------- Detail ---------- */
+function openDetail(id){
+  curIndex=DEST.findIndex(d=>d.id===id);
+  const d=DEST[curIndex];
+  document.getElementById('dtName').textContent=d.flag+' '+d.name;
+  document.getElementById('detailBody').innerHTML=detailHTML(d);
+  const det=document.getElementById('detail'); det.scrollTop=0; det.classList.add('active');
+  wireGallery();
+  document.querySelectorAll('#bigstars .s').forEach(st=>st.addEventListener('click',()=>setRating(d.id,parseInt(st.dataset.n))));
+  const ta=document.getElementById('cityNote'); if(ta) ta.addEventListener('input',()=>{cityNotes[d.id]=ta.value;});
+}
+function closeDetail(){ saveNote(); document.getElementById('detail').classList.remove('active'); }
+
+function detailHTML(d){
+  const gal=`
+    <div class="gallery">
+      <div class="scroller" id="scroller">
+        ${d.gallery.map(g=>`<div class="slide media" style="--fa:${d.fa};--fb:${d.fb}">${mediaHTML(d,g.file,g.cap)}</div>`).join('')}
+      </div>
+      <button class="gnav prev" onclick="galScroll(-1)" aria-label="Previous photo">‹</button>
+      <button class="gnav next" onclick="galScroll(1)" aria-label="Next photo">›</button>
+    </div>
+    <div class="dots" id="dots">${d.gallery.map((_,i)=>`<span class="d ${i===0?'on':''}" onclick="galTo(${i})"></span>`).join('')}</div>
+    <div class="swipe-hint">swipe, tap ‹ ›, or scroll · ${d.gallery.length} photos</div>`;
+
+  const days=d.days.map(c=>`
+    <div class="chapter">
+      <div class="ctitle">${c.title}</div>
+      <div class="cmeta">
+        <span class="pill ${c.type==='move'?'move':'stay'}">${c.type==='move'?'↔ Change base':'📍 Stay put'}</span>
+        <span class="pill days">${c.range}</span><span style="color:var(--ink-3)">· ${c.base}</span>
+      </div>
+      ${c.move?`<div class="movenote">${c.move}</div>`:''}
+      <ul>${c.items.map(x=>`<li>${x}</li>`).join('')}</ul>
+    </div>`).join('');
+
+  const vBadge=v=>v==='easy'?'<span class="verdict v-easy">Easy</span>':v==='ok'?'<span class="verdict v-ok">Workable</span>':'<span class="verdict v-hard">Some friction</span>';
+  const tierDots=t=>'<span class="dtier">'+[1,2,3,4].map(i=>`<span class="${i<=t?'on':'off'}">$</span>`).join('')+'</span>';
+
+  const food=`
+    <div class="block">
+      <h3>🍽️ Food scene</h3>
+      <p class="lede">${d.food.reputation}</p>
+      <div class="dishes">${d.food.dishes.map(x=>`<div class="dish"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
+      <div class="lens emma"><div class="lh">🍗 For Emmaline (picky) ${vBadge(d.food.emma.v)}</div>${d.food.emma.t}</div>
+      <div class="lens sil"><div class="lh">🦐 Avoiding seafood (SIL) ${vBadge(d.food.sil.v)}</div>${d.food.sil.t}</div>
+      <div class="foodcost">Daily food cost: ${tierDots(d.food.cost)} &nbsp;<b>${['','budget-friendly','moderate','pricey','very pricey'][d.food.cost]}</b></div>
+    </div>`;
+
+  const ratingsBlock=`
+    <div class="block">
+      <h3>⭐ What travelers say</h3>
+      <p class="lede">Real aggregate ratings from TripAdvisor/Google (review counts approximate).</p>
+      ${d.ratings.map(r=>`<div class="rrow"><span class="score">${r.s}★</span><div><div class="rn">${r.n}</div><div class="rc">${r.c} reviews</div><div class="rw">${r.w}</div></div></div>`).join('')}
+    </div>`;
+
+  const stay=`
+    <div class="block">
+      <h3>🏡 Where we'd stay & how we'd get around</h3>
+      <p class="lede">${d.lodging}</p>
+      <div class="qfact" style="margin-bottom:8px"><div class="k">✈️ From Dallas (Ben, Emma, Mom, Dad)</div><div class="v">${d.flights.dfw}</div></div>
+      <div class="qfact" style="margin-bottom:8px"><div class="k">✈️ From Miami (Matt, SIL, baby)</div><div class="v">${d.flights.mia}</div></div>
+      <div class="qfact"><div class="k">🚗 On the ground</div><div class="v">${d.flights.ground}</div></div>
+    </div>`;
+
+  const rate=`
+    <div class="ratebox">
+      <h3>How excited are you about ${d.name}?</h3>
+      <p>Tap to rate — it saves automatically</p>
+      <div class="bigstars" id="bigstars">${starRow(d.id, ratings[d.id]||0)}</div>
+      <div class="ratelabel" id="rateLabel">${RATE_WORDS[ratings[d.id]||0]}</div>
+      <div class="ta-label">📝 Your thoughts on this place (optional)</div>
+      <textarea id="cityNote" placeholder="What do you love or worry about here? Anything you'd want to do or skip?">${cityNotes[d.id]||''}</textarea>
+      <div class="prevnext">
+        <button onclick="stepDetail(-1)" ${curIndex===0?'disabled':''}>‹ ${curIndex>0?DEST[curIndex-1].name:''}</button>
+        <button class="np" onclick="stepDetail(1)">${curIndex<DEST.length-1?(DEST[curIndex+1].name+' ›'):'Done — my votes ›'}</button>
+      </div>
+    </div>`;
+
+  return `${gal}
+    <div class="wrap">
+      <div class="d-head"><h2>${d.name}</h2><div class="country">${d.flag} ${d.country}</div><div class="tag">${d.tagline}</div></div>
+      <div class="qfacts">
+        <div class="qfact"><div class="k">🌡️ July weather</div><div class="v">${d.climate.hi} / ${d.climate.lo}</div></div>
+        <div class="qfact"><div class="k">💰 Group all-in (rough)</div><div class="v">${money(allIn(d.cost))}</div></div>
+      </div>
+      <div class="qfact" style="margin-top:8px"><div class="k">📅 Best window</div><div class="v" style="font-weight:600">${d.window}</div></div>
+      <div class="qfact" style="margin-top:8px"><div class="k">🌤️ Climate note</div><div class="v" style="font-weight:600">${d.climate.note}</div></div>
+      <div class="block"><h3>📆 What the days would feel like</h3>
+        <p class="lede">Rough flow — enough to picture it, not a locked schedule. Watch the tags: 📍 = stay put, ↔ = change hotels.</p>${days}</div>
+      ${food}${stay}${ratingsBlock}${rate}
+    </div>`;
+}
+
+function stepDetail(dir){
+  saveNote();
+  const ni=curIndex+dir;
+  if(ni<0) return;
+  if(ni>=DEST.length){ document.getElementById('detail').classList.remove('active'); showView('votes'); return; }
+  openDetail(DEST[ni].id);
+  document.getElementById('detail').scrollTop=0;
+}
+function saveNote(){ const ta=document.getElementById('cityNote'); if(ta) cityNotes[DEST[curIndex].id]=ta.value; }
+
+/* gallery nav */
+function galScroll(dir){ const sc=document.getElementById('scroller'); if(sc) sc.scrollBy({left:dir*sc.clientWidth,behavior:'smooth'}); }
+function galTo(i){ const sc=document.getElementById('scroller'); if(sc) sc.scrollTo({left:i*sc.clientWidth,behavior:'smooth'}); }
+function wireGallery(){
+  const sc=document.getElementById('scroller'); if(!sc) return;
+  const dots=document.querySelectorAll('#dots .d');
+  sc.addEventListener('scroll',()=>{ const i=Math.round(sc.scrollLeft/sc.clientWidth); dots.forEach((d,di)=>d.classList.toggle('on',di===i)); },{passive:true});
+  const gal=sc.closest('.gallery');
+  if(gal) gal.addEventListener('wheel',e=>{ if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){ sc.scrollLeft+=e.deltaY; e.preventDefault(); } },{passive:false});
+}
+
+/* ---------- Compare ---------- */
+function renderCosts(){
+  document.getElementById('whyBox').innerHTML='<b>Why the earlier numbers looked so close:</b> flights and group-apartment lodging barely change between these cities (transatlantic summer airfare is ~$1–1.5k/person almost everywhere). The real spread comes from <b>daily food, activities, and a rental car</b> — Reykjavík/Bergen run roughly double Spain or Italy day-to-day, and Iceland forces a van. With those added, the gap opens to about <b>$4k</b> across the six.';
+  document.getElementById('assumBox').innerHTML='<b>Assumptions:</b> 4 tickets from Dallas (Ben, Emma, Mom, Dad) + 2 adult tickets from Miami (Matt, SIL) + a lap-infant, round-trip peak summer; ~8 nights of lodging as 1–2 whole apartments with kitchen + laundry; blended food (some self-catered, some out); typical activities/museums; and local transport or a rental car where needed. Excludes shopping, travel insurance & incidentals.';
+  const rows=DEST.map(d=>({d,all:allIn(d.cost)})).sort((a,b)=>a.all-b.all);
+  const max=Math.max(...rows.map(r=>r.all));
+  const tierDots=t=>[1,2,3,4].map(i=>`<span class="${i<=t?'on':'off'}">$</span>`).join('');
+  document.getElementById('costList').innerHTML=rows.map(r=>{
+    const d=r.d, c=d.cost;
+    return `<div class="costcard">
+      <div class="ch"><span class="flag">${d.flag}</span><h3>${d.name}</h3>
+        <div style="text-align:right"><div class="total">${money(r.all)}</div><div class="per">≈ ${money(Math.round(r.all/7))}/person</div></div></div>
+      <div class="bar"><i style="width:${Math.round(r.all/max*100)}%"></i></div>
+      <div class="costgrid">
+        <div class="cg"><div class="k">✈️ Flights</div><div class="v">${money(c.flights)}</div></div>
+        <div class="cg"><div class="k">🏡 Stay</div><div class="v">${money(c.lodging)}</div></div>
+        <div class="cg"><div class="k">🍽️ Food</div><div class="v">${money(c.food)}</div></div>
+        <div class="cg"><div class="k">🎟️ Activities</div><div class="v">${money(c.activities)}</div></div>
+        <div class="cg"><div class="k">🚗 Transport</div><div class="v">${money(c.ground)}</div></div>
+      </div>
+      <div class="daily">Daily food/drink on the ground: <span class="dtier">${tierDots(c.tier)}</span></div>
+      <div class="costnote">${c.note}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Votes + share ---------- */
+function updateVoteCount(){
+  const n=Object.values(ratings).filter(Boolean).length;
+  const b=document.getElementById('voteCount'); b.textContent=n; b.style.display=n?'inline-block':'none';
+  if(document.getElementById('view-votes').classList.contains('active')) renderVotes();
+}
+function renderVotes(){
+  const ranked=DEST.map(d=>({d,r:ratings[d.id]||0})).sort((a,b)=>b.r-a.r);
+  const any=ranked.some(x=>x.r>0);
+  document.getElementById('voteSummary').innerHTML= any
+    ? ranked.map((x,i)=>`<div class="vitem"><div class="vrank">${x.r?('#'+(i+1)):'–'}</div><span class="vflag">${x.d.flag}</span><span class="vname">${x.d.name}</span><span class="vstars">${'★'.repeat(x.r)}<span class="off">${'★'.repeat(5-x.r)}</span></span></div>`).join('')
+    : '<p style="color:var(--ink-3);font-size:.88rem;margin:4px 0">You haven\'t rated anywhere yet — head to <b>Explore</b> and tap some stars.</p>';
+  buildShare();
+}
+function val(id){ const e=document.getElementById(id); return e && e.value.trim(); }
+function buildShare(){
+  const ranked=DEST.map(d=>({d,r:ratings[d.id]||0})).sort((a,b)=>b.r-a.r);
+  let lines=['🗺️ MY SUMMER 2027 TRIP PICKS',''];
+  const rated=ranked.filter(x=>x.r>0);
+  if(rated.length){
+    rated.forEach((x,i)=>{ lines.push(`${i+1}. ${x.d.flag} ${x.d.name} — ${'★'.repeat(x.r)}${'☆'.repeat(5-x.r)}`); if(cityNotes[x.d.id]&&cityNotes[x.d.id].trim()) lines.push(`   ↳ ${cityNotes[x.d.id].trim()}`); });
+    const un=ranked.filter(x=>!x.r); if(un.length){ lines.push(''); lines.push('(didn\'t rate: '+un.map(x=>x.d.name).join(', ')+')'); }
+  } else lines.push('(no star ratings yet)');
+  const th=val('fb-thoughts'),ve=val('fb-veto'),wi=val('fb-wish'),ot=val('fb-other');
+  if(th){lines.push('');lines.push('💬 Thoughts: '+th);}
+  if(ve){lines.push('');lines.push('🚫 Rather not: '+ve);}
+  if(wi){lines.push('');lines.push('✨ Would add: '+wi);}
+  if(ot){lines.push('');lines.push('🌍 Other places: '+ot);}
+  const txt=lines.join('\n'); document.getElementById('shareBox').textContent=txt; return txt;
+}
+document.addEventListener('input',e=>{ if(e.target && ['fb-thoughts','fb-veto','fb-wish','fb-other'].includes(e.target.id)) buildShare(); });
+
+function copyText(txt){
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(()=>toast('📋 Copied — paste it in our chat!')).catch(()=>legacyCopy(txt));
+  } else legacyCopy(txt);
+}
+function legacyCopy(txt){
+  const ta=document.createElement('textarea'); ta.value=txt; ta.setAttribute('readonly','');
+  ta.style.position='fixed'; ta.style.top='0'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand('copy'); toast('📋 Copied — paste it in our chat!'); }
+  catch(e){ toast('Select the text below to copy'); }
+  document.body.removeChild(ta);
+}
+function copyOut(){ copyText(buildShare()); }
+function shareOut(){
+  const txt=buildShare();
+  if(navigator.share){ navigator.share({title:'My Summer 2027 Trip Picks', text:txt}).catch(()=>{}); }
+  else copyText(txt);
+}
+function resetAll(){
+  if(!confirm('Clear all your ratings and notes?')) return;
+  ratings={}; cityNotes={};
+  ['fb-thoughts','fb-veto','fb-wish','fb-other'].forEach(id=>{const e=document.getElementById(id); if(e)e.value='';});
+  renderCards(); updateVoteCount(); renderVotes(); toast('Cleared');
+}
+
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tab-'+v).classList.add('on');
+  window.scrollTo(0,0);
+  if(v==='costs') renderCosts();
+  if(v==='votes') renderVotes();
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
+
+renderCards(); updateVoteCount();
+</script>
+</body>
+</html>
