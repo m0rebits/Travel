@@ -222,14 +222,14 @@
 <div class="view" id="view-costs"><div class="wrap pad">
   <div class="intro">
     <h2>💰 Rough all-in cost comparison</h2>
-    <p>Full estimate for the group — <b>7 of us</b> (5 adults + Emma + the baby), or <b>8 if your sister joins</b> and takes her own room. Shown as a range. Includes <b>flights + lodging + food + activities + local transport/car</b>.</p>
+    <p>Full estimate for the group — <b>7–8 people</b> depending on final headcount (5–6 adults, Emma, and the baby). Shown as a range. Includes <b>flights + lodging + food + activities + local transport/car</b>.</p>
   </div>
   <div class="whycluster" id="whyBox"></div>
   <div class="assum" id="assumBox"></div>
   <div class="modetog" id="modetog">
-    <button data-m="low" onclick="setCostMode('low')">Just us (7)</button>
+    <button data-m="low" onclick="setCostMode('low')">7 people</button>
     <button data-m="range" class="on" onclick="setCostMode('range')">Range</button>
-    <button data-m="high" onclick="setCostMode('high')">+ Sister (8)</button>
+    <button data-m="high" onclick="setCostMode('high')">8 people</button>
   </div>
   <div class="section-label">Sorted cheapest → priciest</div>
   <div id="costList"></div>
@@ -346,7 +346,7 @@ const DEST = [
       sil:{v:'ok', t:'Honest: this is the one place seafood really matters. Good news — the Basque Country is equally famous for beef (txuleta), ham, sheep cheese, egg dishes & vegetable pintxos, and steakhouses (asadores) are safe havens. But pintxos bars are anchovy/cod/shellfish-heavy with real cross-contact, so with a true allergy she\'ll want a Spanish allergy card and should order deliberately. Doable, not effortless.'},
       cost:2
     },
-    lodging:'Two bases: a couple of nights in Bilbao (clean, central Abando/Casco Viejo apartments or 3–4★ hotels) then a whole-apartment base in San Sebastián (old town / Gros / Centro). For 7, 1–2 apartments with kitchen + laundry beat separate hotel rooms and solve Emma\'s + SIL\'s food needs. San Sebastián summer is genuinely pricey and sells out months ahead — book early.',
+    lodging:'Two bases: a couple of nights in Bilbao (clean, central Abando/Casco Viejo apartments or 3–4★ hotels) then a whole-apartment base in San Sebastián (old town / Gros / Centro). For a group this size, 1–2 apartments with kitchen + laundry beat separate hotel rooms and solve Emma\'s + Tara\'s food needs. San Sebastián summer is genuinely pricey and sells out months ahead — book early.',
     flights:{dfw:'DFW → Madrid nonstop, then MAD→Bilbao (~1h) · ~$1,000–1,600 + ~$80–200 hop', mia:'MIA → Madrid nonstop, then same hop · ~$900–1,500 + hop', ground:'Bilbao airport → San Sebastián: bus ~€14/person (~1h15) or private van ~€120–180. 1–2 rental cars handy for day trips.'},
     ratings:[
       {n:'La Concha Beach', s:4.7, c:'~9,300', w:'A genuinely stunning, swimmable city beach'},
@@ -457,7 +457,7 @@ const DEST = [
     ],
     days:[
       {title:'Bergen', base:'Bergen', range:'Days 1–4', type:'stay',
-        items:['Wander Bryggen\'s colorful wooden wharf (flat, stroller-friendly)','Fløibanen funicular up Mt Fløyen: trails, playground, goats, café','Fish market (non-fish stalls nearby for Emma & SIL)','Ulriken cable car for the biggest panoramas']},
+        items:['Wander Bryggen\'s colorful wooden wharf (flat, stroller-friendly)','Fløibanen funicular up Mt Fløyen: trails, playground, goats, café','Fish market (non-fish stalls nearby for Emma & Tara)','Ulriken cable car for the biggest panoramas']},
       {title:'The fjords — 2 ways to do it', base:'Flåm', range:'Days 5–7', type:'move',
         move:'Recommended for your group: RELOCATE to Flåm for 2–3 nights so the legs stay short. (Alternative: do the whole "Norway in a Nutshell" loop as ONE long ~10–12h day trip from Bergen and never repack — but that\'s a lot for a 1-year-old.)',
         items:['Nærøyfjord cruise through the narrowest UNESCO arm (~2h, electric boats)','Flåm Railway up to Myrdal past the Kjosfossen waterfall','Tiny goat-cheese village of Undredal or Aurland time']},
@@ -481,7 +481,7 @@ const DEST = [
       {n:'Nærøyfjord cruise', s:4.7, c:'~ (high)', w:'Gliding through Europe\'s most dramatic fjord'}
     ],
     cost:{flights:8250, lodging:4960, food:4200, activities:1500, ground:700, tier:4,
-      note:'Cheap-ish flights, but daily food is the priciest tier and the fjord cruise/railway tickets add up. Most logistically involved (a base change). Two honest catches: rain odds and SIL\'s seafood constraint.'}
+      note:'Cheap-ish flights, but daily food is the priciest tier and the fjord cruise/railway tickets add up. Most logistically involved (a base change). Two honest catches: rain odds and Tara\'s seafood constraint.'}
   },
 
   {
@@ -534,7 +534,7 @@ const RATE_WORDS = ['','Not for me','Meh','Could work','Really like it','Dream t
 const money = n => '$'+n.toLocaleString();
 const allIn = c => c.flights + c.lodging + c.food + c.activities + c.ground;
 
-/* incremental cost of adding the +1 adult (adopted sister, own bedroom, flies from Miami) */
+/* incremental cost of the 8th traveler (extra adult from Miami + own bedroom) */
 const HER = {
   como:{flights:1100,lodging:1000,food:330,activities:100,ground:80},
   sansebastian:{flights:1300,lodging:1200,food:400,activities:130,ground:100},
@@ -640,7 +640,7 @@ function detailHTML(d){
       <p class="lede">${d.food.reputation}</p>
       <div class="dishes">${d.food.dishes.map(x=>`<div class="dish"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
       <div class="lens emma"><div class="lh">🍗 For Emmaline (picky) ${vBadge(d.food.emma.v)}</div>${d.food.emma.t}</div>
-      <div class="lens sil"><div class="lh">🦐 Avoiding seafood (SIL) ${vBadge(d.food.sil.v)}</div>${d.food.sil.t}</div>
+      <div class="lens sil"><div class="lh">🦐 No seafood (Tara) ${vBadge(d.food.sil.v)}</div>${d.food.sil.t}</div>
       <div class="foodcost">Daily food cost: ${tierDots(d.food.cost)} &nbsp;<b>${['','budget-friendly','moderate','pricey','very pricey'][d.food.cost]}</b></div>
     </div>`;
 
@@ -655,8 +655,8 @@ function detailHTML(d){
     <div class="block">
       <h3>🏡 Where we'd stay & how we'd get around</h3>
       <p class="lede">${d.lodging}</p>
-      <div class="qfact" style="margin-bottom:8px"><div class="k">✈️ From Dallas (Ben, Emma, Mom, Dad)</div><div class="v">${d.flights.dfw}</div></div>
-      <div class="qfact" style="margin-bottom:8px"><div class="k">✈️ From Miami (Matt, SIL, baby)</div><div class="v">${d.flights.mia}</div></div>
+      <div class="qfact" style="margin-bottom:8px"><div class="k">✈️ From Dallas</div><div class="v">${d.flights.dfw}</div></div>
+      <div class="qfact" style="margin-bottom:8px"><div class="k">✈️ From Miami</div><div class="v">${d.flights.mia}</div></div>
       <div class="qfact"><div class="k">🚗 On the ground</div><div class="v">${d.flights.ground}</div></div>
     </div>`;
 
@@ -718,7 +718,7 @@ function setCostMode(m){
 }
 function renderCosts(){
   document.getElementById('whyBox').innerHTML='<b>Why the earlier numbers looked so close:</b> flights and group-apartment lodging barely change between these cities (transatlantic summer airfare is ~$1–1.5k/person almost everywhere). The real spread comes from <b>daily food, activities, and a rental car</b> — Reykjavík/Bergen run roughly double Spain or Italy day-to-day, and Iceland forces a van. With those added, the gap opens to about <b>$4k</b> across the six.';
-  document.getElementById('assumBox').innerHTML='<b>Assumptions:</b> the <b>low end</b> is our 7 (4 tickets from Dallas — Ben, Emma, Mom, Dad — + 2 adult tickets from Miami — Matt, SIL — + a lap-infant). The <b>high end adds your sister</b>: 1 more adult flying from Miami (she lives there), in her own extra bedroom. ~8 nights as 1–2 whole apartments (kitchen + laundry); blended food; typical activities; and local transport or a rental car where needed. Excludes shopping, insurance & incidentals.';
+  document.getElementById('assumBox').innerHTML='<b>Assumptions:</b> our group is <b>7–8 people</b> depending on final headcount — 5–6 adults plus Emma (7) and the baby (1). Four fly from Dallas; the rest from Miami. The range below spans the 7- and 8-person cases (an 8th adult adds a flight, a share of food/activities, and one more bedroom). ~8 nights as whole apartments with kitchen + laundry and enough bedrooms for everyone; blended food; typical activities; local transport or a rental car where needed. Excludes shopping, insurance & incidentals.';
   const rows=DEST.map(d=>({d,lo:lowTotal(d),hi:highTotal(d)})).sort((a,b)=>a.lo-b.lo);
   const max=Math.max(...rows.map(r=> costMode==='high'?r.hi:r.lo));
   const tierDots=t=>[1,2,3,4].map(i=>`<span class="${i<=t?'on':'off'}">$</span>`).join('');
