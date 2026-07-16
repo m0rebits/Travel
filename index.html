@@ -168,6 +168,9 @@
   .costnote{font-size:.74rem;color:var(--ink-2);margin-top:9px;background:#fbf6ee;border-radius:9px;padding:7px 9px;}
   .assum{font-size:.72rem;color:var(--ink-3);background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:11px 12px;margin:4px 0 16px;}
   .whycluster{font-size:.8rem;color:var(--ink-2);background:#eaf3f0;border:1px solid #cfe6de;border-radius:12px;padding:11px 12px;margin-bottom:16px;}
+  .modetog{display:flex;gap:6px;background:var(--chip);border-radius:12px;padding:4px;margin-bottom:14px;}
+  .modetog button{flex:1;padding:9px 6px;border-radius:9px;font-size:.76rem;font-weight:700;color:var(--ink-2);}
+  .modetog button.on{background:var(--surface);color:var(--brand-d);box-shadow:0 1px 4px rgba(0,0,0,.12);}
 
   .vsummary{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px;box-shadow:var(--shadow);margin-bottom:14px;}
   .vitem{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
@@ -219,11 +222,16 @@
 <div class="view" id="view-costs"><div class="wrap pad">
   <div class="intro">
     <h2>💰 Rough all-in cost comparison</h2>
-    <p>Full estimate for the <b>whole group of 7</b> (5 adults + Emma + the baby), ~8 days. Now includes <b>flights + lodging + food + activities + local transport/car</b> — not just the fixed costs.</p>
+    <p>Full estimate for the group — <b>7 of us</b> (5 adults + Emma + the baby), or <b>8 if your sister joins</b> and takes her own room. Shown as a range. Includes <b>flights + lodging + food + activities + local transport/car</b>.</p>
   </div>
   <div class="whycluster" id="whyBox"></div>
   <div class="assum" id="assumBox"></div>
-  <div class="section-label">Sorted cheapest → priciest (full all-in)</div>
+  <div class="modetog" id="modetog">
+    <button data-m="low" onclick="setCostMode('low')">Just us (7)</button>
+    <button data-m="range" class="on" onclick="setCostMode('range')">Range</button>
+    <button data-m="high" onclick="setCostMode('high')">+ Sister (8)</button>
+  </div>
+  <div class="section-label">Sorted cheapest → priciest</div>
   <div id="costList"></div>
   <footer>Estimates only — real 2027 fares/rates will vary. Built to spot the real spread, not to book against.</footer>
 </div></div>
@@ -526,6 +534,21 @@ const RATE_WORDS = ['','Not for me','Meh','Could work','Really like it','Dream t
 const money = n => '$'+n.toLocaleString();
 const allIn = c => c.flights + c.lodging + c.food + c.activities + c.ground;
 
+/* incremental cost of adding the +1 adult (adopted sister, own bedroom, flies from Miami) */
+const HER = {
+  como:{flights:1100,lodging:1000,food:330,activities:100,ground:80},
+  sansebastian:{flights:1300,lodging:1200,food:400,activities:130,ground:100},
+  amsterdam:{flights:1100,lodging:1100,food:430,activities:170,ground:60},
+  stockholm:{flights:1250,lodging:1050,food:570,activities:180,ground:70},
+  norway:{flights:1300,lodging:1100,food:700,activities:250,ground:200},
+  iceland:{flights:900,lodging:1200,food:730,activities:220,ground:350}
+};
+const herSum = id => { const h=HER[id]; return h.flights+h.lodging+h.food+h.activities+h.ground; };
+const lowTotal = d => allIn(d.cost);
+const highTotal = d => allIn(d.cost) + herSum(d.id);
+const rng = (lo,hi) => lo===hi ? money(lo) : money(lo)+'–'+money(hi);
+let costMode = 'range';   // 'low' | 'range' | 'high'
+
 function starRow(id,val){ let h=''; for(let n=1;n<=5;n++){h+=`<span class="s ${n<=val?'on':''}" data-n="${n}">★</span>`;} return h; }
 
 /* ---------- media block (full photo, blurred backdrop) ---------- */
@@ -656,7 +679,7 @@ function detailHTML(d){
       <div class="d-head"><h2>${d.name}</h2><div class="country">${d.flag} ${d.country}</div><div class="tag">${d.tagline}</div></div>
       <div class="qfacts">
         <div class="qfact"><div class="k">🌡️ July weather</div><div class="v">${d.climate.hi} / ${d.climate.lo}</div></div>
-        <div class="qfact"><div class="k">💰 Group all-in (rough)</div><div class="v">${money(allIn(d.cost))}</div></div>
+        <div class="qfact"><div class="k">💰 Group all-in (7 → 8)</div><div class="v">${rng(lowTotal(d),highTotal(d))}</div></div>
       </div>
       <div class="qfact" style="margin-top:8px"><div class="k">📅 Best window</div><div class="v" style="font-weight:600">${d.window}</div></div>
       <div class="qfact" style="margin-top:8px"><div class="k">🌤️ Climate note</div><div class="v" style="font-weight:600">${d.climate.note}</div></div>
@@ -688,24 +711,33 @@ function wireGallery(){
 }
 
 /* ---------- Compare ---------- */
+function setCostMode(m){
+  costMode=m;
+  document.querySelectorAll('#modetog button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  renderCosts();
+}
 function renderCosts(){
   document.getElementById('whyBox').innerHTML='<b>Why the earlier numbers looked so close:</b> flights and group-apartment lodging barely change between these cities (transatlantic summer airfare is ~$1–1.5k/person almost everywhere). The real spread comes from <b>daily food, activities, and a rental car</b> — Reykjavík/Bergen run roughly double Spain or Italy day-to-day, and Iceland forces a van. With those added, the gap opens to about <b>$4k</b> across the six.';
-  document.getElementById('assumBox').innerHTML='<b>Assumptions:</b> 4 tickets from Dallas (Ben, Emma, Mom, Dad) + 2 adult tickets from Miami (Matt, SIL) + a lap-infant, round-trip peak summer; ~8 nights of lodging as 1–2 whole apartments with kitchen + laundry; blended food (some self-catered, some out); typical activities/museums; and local transport or a rental car where needed. Excludes shopping, travel insurance & incidentals.';
-  const rows=DEST.map(d=>({d,all:allIn(d.cost)})).sort((a,b)=>a.all-b.all);
-  const max=Math.max(...rows.map(r=>r.all));
+  document.getElementById('assumBox').innerHTML='<b>Assumptions:</b> the <b>low end</b> is our 7 (4 tickets from Dallas — Ben, Emma, Mom, Dad — + 2 adult tickets from Miami — Matt, SIL — + a lap-infant). The <b>high end adds your sister</b>: 1 more adult flying from Miami (she lives there), in her own extra bedroom. ~8 nights as 1–2 whole apartments (kitchen + laundry); blended food; typical activities; and local transport or a rental car where needed. Excludes shopping, insurance & incidentals.';
+  const rows=DEST.map(d=>({d,lo:lowTotal(d),hi:highTotal(d)})).sort((a,b)=>a.lo-b.lo);
+  const max=Math.max(...rows.map(r=> costMode==='high'?r.hi:r.lo));
   const tierDots=t=>[1,2,3,4].map(i=>`<span class="${i<=t?'on':'off'}">$</span>`).join('');
+  const comp=(base,add)=> costMode==='low'?money(base): costMode==='high'?money(base+add): rng(base,base+add);
   document.getElementById('costList').innerHTML=rows.map(r=>{
-    const d=r.d, c=d.cost;
+    const d=r.d, c=d.cost, h=HER[d.id];
+    const total = costMode==='low'?money(r.lo): costMode==='high'?money(r.hi): rng(r.lo,r.hi);
+    const per = costMode==='low'?money(Math.round(r.lo/7)): costMode==='high'?money(Math.round(r.hi/8)): rng(Math.round(r.lo/7),Math.round(r.hi/8));
+    const barw = Math.round((costMode==='high'?r.hi:r.lo)/max*100);
     return `<div class="costcard">
       <div class="ch"><span class="flag">${d.flag}</span><h3>${d.name}</h3>
-        <div style="text-align:right"><div class="total">${money(r.all)}</div><div class="per">≈ ${money(Math.round(r.all/7))}/person</div></div></div>
-      <div class="bar"><i style="width:${Math.round(r.all/max*100)}%"></i></div>
+        <div style="text-align:right"><div class="total">${total}</div><div class="per">≈ ${per}/person</div></div></div>
+      <div class="bar"><i style="width:${barw}%"></i></div>
       <div class="costgrid">
-        <div class="cg"><div class="k">✈️ Flights</div><div class="v">${money(c.flights)}</div></div>
-        <div class="cg"><div class="k">🏡 Stay</div><div class="v">${money(c.lodging)}</div></div>
-        <div class="cg"><div class="k">🍽️ Food</div><div class="v">${money(c.food)}</div></div>
-        <div class="cg"><div class="k">🎟️ Activities</div><div class="v">${money(c.activities)}</div></div>
-        <div class="cg"><div class="k">🚗 Transport</div><div class="v">${money(c.ground)}</div></div>
+        <div class="cg"><div class="k">✈️ Flights</div><div class="v">${comp(c.flights,h.flights)}</div></div>
+        <div class="cg"><div class="k">🏡 Stay</div><div class="v">${comp(c.lodging,h.lodging)}</div></div>
+        <div class="cg"><div class="k">🍽️ Food</div><div class="v">${comp(c.food,h.food)}</div></div>
+        <div class="cg"><div class="k">🎟️ Activities</div><div class="v">${comp(c.activities,h.activities)}</div></div>
+        <div class="cg"><div class="k">🚗 Transport</div><div class="v">${comp(c.ground,h.ground)}</div></div>
       </div>
       <div class="daily">Daily food/drink on the ground: <span class="dtier">${tierDots(c.tier)}</span></div>
       <div class="costnote">${c.note}</div>
